@@ -3,6 +3,10 @@ import psycopg2
 import socket
 import sys
 
+# Import external modules for countdown and game screen.
+import gamestarttimer
+import gameScreen
+
 # ---------------------------------------------------------
 # Configuration and Initialization
 # ---------------------------------------------------------
@@ -232,6 +236,7 @@ class Button:
 # ---------------------------------------------------------
 # The application states: splash, main, popup, game.
 state = "splash"
+splash_start_time = None  # New variable for non-blocking splash timing
 
 # In-memory data for teams: "green" and "red" each hold a list of player dictionaries.
 players_table = {"green": [], "red": []}
@@ -679,9 +684,8 @@ def draw_main_screen():
                                         y + row_height/2 - codename_text.get_height()/2))
     
     # Draw the main screen buttons (Add Player, Update Player, Clear, Start).
-    main_any_hovered = any(widget.rect.collidepoint(pygame.mouse.get_pos()) for widget in main_widgets)
     for widget in main_widgets:
-        widget.draw(screen, disable_tab_highlight=main_any_hovered)
+        widget.draw(screen)
 
 # ---------------------------------------------------------
 # Main Screen Buttons & Navigation
@@ -690,7 +694,8 @@ def draw_main_screen():
 add_player_button = Button(82, 720, 200, 40, "Add Player", lambda: start_add_player())
 update_player_button = Button(302, 720, 200, 40, "Update Player", lambda: start_update_player())
 clear_players_button = Button(522, 720, 200, 40, "Clear Players", lambda: clear_players())
-start_game_button = Button(742, 720, 200, 40, "Start Game", lambda: start_game())
+# Start Game now triggers the countdown and game screen.
+start_game_button = Button(742, 720, 200, 40, "Start Game", lambda: start_game_sequence())
 
 # A list of these buttons so we can tab between them.
 main_widgets = [add_player_button, update_player_button, clear_players_button, start_game_button]
@@ -723,38 +728,6 @@ def clear_players():
     global players_table
     players_table = {"green": [], "red": []}
 
-def start_game():
-    """
-    Switches the state to 'game' for a future game screen.
-    """
-    global state
-    state = "game"
-
-# ---------------------------------------------------------
-# Game Screen (Stub)
-# ---------------------------------------------------------
-def draw_game_screen():
-    """
-    Currently displays a placeholder message for the game screen.
-    """
-    screen.fill(BG_COLOR)
-    message = FONT.render("Play Action Screen - Under Construction", True, WHITE)
-    screen.blit(message, ((SCREEN_WIDTH - message.get_width())//2,
-                          (SCREEN_HEIGHT - message.get_height())//2))
-    return_button.draw(screen)
-
-return_button = Button((SCREEN_WIDTH - 200)//2, SCREEN_HEIGHT - 100, 200, 40, "Return", lambda: return_to_main())
-def return_to_main():
-    """
-    Returns to the main state from the game screen.
-    """
-    global state
-    state = "main"
-    set_main_focus(0)
-
-# ---------------------------------------------------------
-# Popup Starters
-# ---------------------------------------------------------
 def start_add_player():
     """
     Begins the add-player wizard (4-step popup).
@@ -775,6 +748,64 @@ def start_update_player():
     init_update_popup()
     state = "popup"
 
+def start_game_sequence():
+    """
+    Transitions from the player entry screen to the countdown screen.
+    After the countdown completes, it sends the game start UDP code
+    and then opens the game screen.
+    """
+    gamestarttimer.run_countdown(screen)
+    send_udp_message(DEFAULT_UDP_IP, 202)  # Transmit game start code
+    gameScreen.show_game_screen(screen)
+    # After returning from game screen, go back to player entry.
+    global state
+    state = "main"
+    set_main_focus(0)
+
+def draw_popup():
+    """
+    Draws the popup over the main screen.
+    """
+    draw_main_screen()
+    pygame.draw.rect(screen, STORMY_BLUE, popup_rect, border_radius=10)
+    pygame.draw.rect(screen, pygame.Color('black'), popup_rect, 2, border_radius=10)
+
+    # Decide the header text based on the mode and step (for add wizard).
+    header_text = ""
+    if popup_mode == "add":
+        if popup_step == 1:
+            header_text = "Step 1: Enter Player ID"
+        elif popup_step == 2:
+            header_text = "Step 2: Enter/Update Codename"
+        elif popup_step == 3:
+            header_text = "Step 3: Equipment ID & UDP IP"
+        elif popup_step == 4:
+            header_text = "Step 4: Choose Team"
+    elif popup_mode == "update":
+        header_text = "Update Player Information"
+
+    # Render and draw the popup header.
+    header_surf = FONT.render(header_text, True, WHITE)
+    screen.blit(header_surf, (popup_rect.x + 20, popup_rect.y + 20))
+
+    # If in update mode, label the first five widgets (the input boxes).
+    if popup_mode == "update":
+        labels = ["Player ID:", "Codename:", "Equipment ID:", "UDP Target IP:", "Team:"]
+        for i, widget in enumerate(popup_widgets[:5]):
+            label_surf = FONT.render(labels[i], True, WHITE)
+            # Position each label just above its input box.
+            label_y = widget.rect.y - label_surf.get_height() - 5
+            screen.blit(label_surf, (widget.rect.x, label_y))
+
+    # If there's an info/error message, draw it near the bottom of the popup.
+    if popup_info_text:
+        info_surf = FONT.render(popup_info_text, True, pygame.Color('red'))
+        screen.blit(info_surf, (popup_rect.x + 20, popup_rect.bottom - 40))
+
+    # Draw all widgets (inputs, buttons) in the popup.
+    for widget in popup_widgets:
+        widget.draw(screen)
+
 # ---------------------------------------------------------
 # Main Event Loop
 # ---------------------------------------------------------
@@ -792,7 +823,7 @@ while True:
                     move_main_focus_next()
                     continue
                 if event.key == pygame.K_F5:
-                    start_game()
+                    start_game_sequence()
                 if event.key == pygame.K_F12:
                     clear_players()
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -829,76 +860,34 @@ while True:
                         break
 
         elif state == "game":
-            # Handle events in the game screen. Currently only the return button.
-            return_button.handle_event(event)
+            # Handle events in the game screen. (Game screen has its own loop.)
+            pass
 
         elif state == "splash":
-            # If on the splash screen, any key press moves us to 'main'.
-            if event.type == pygame.KEYDOWN:
+            # Do not block with delay; use a non-blocking timer.
+            if splash_start_time is None:
+                splash_start_time = pygame.time.get_ticks()
+            if splash_image:
+                screen.blit(splash_image, (0, 0))
+            else:
+                screen.fill(BG_COLOR)
+            # Check elapsed time.
+            current_time = pygame.time.get_ticks()
+            if current_time - splash_start_time >= 3000:
                 state = "main"
+                set_main_focus(0)
 
     # State-specific drawing/logic updates.
     if state == "splash":
-        # Display the splash image or a blank screen for 3 seconds, then go to main.
-        if splash_image:
-            screen.blit(splash_image, (0, 0))
-        else:
-            screen.fill(BG_COLOR)
         pygame.display.flip()
-        pygame.time.delay(3000)
-        state = "main"
-        set_main_focus(0)
+        CLOCK.tick(30)
         continue
 
     if state == "main":
         draw_main_screen()
 
     elif state == "popup":
-        # Draw the main screen behind the popup (for a dim background effect).
-        draw_main_screen()
-        # Draw the popup area and its contents.
-        pygame.draw.rect(screen, STORMY_BLUE, popup_rect, border_radius=10)
-        pygame.draw.rect(screen, pygame.Color('black'), popup_rect, 2, border_radius=10)
+        draw_popup()
 
-        # Decide the header text based on the mode and step (for add wizard).
-        header_text = ""
-        if popup_mode == "add":
-            if popup_step == 1:
-                header_text = "Step 1: Enter Player ID"
-            elif popup_step == 2:
-                header_text = "Step 2: Enter/Update Codename"
-            elif popup_step == 3:
-                header_text = "Step 3: Equipment ID & UDP IP"
-            elif popup_step == 4:
-                header_text = "Step 4: Choose Team"
-        elif popup_mode == "update":
-            header_text = "Update Player Information"
-
-        # Render and draw the popup header.
-        header_surf = FONT.render(header_text, True, WHITE)
-        screen.blit(header_surf, (popup_rect.x + 20, popup_rect.y + 20))
-
-        # If in update mode, label the first five widgets (the input boxes).
-        if popup_mode == "update":
-            labels = ["Player ID:", "Codename:", "Equipment ID:", "UDP Target IP:", "Team:"]
-            for i, widget in enumerate(popup_widgets[:5]):
-                label_surf = FONT.render(labels[i], True, WHITE)
-                # Position each label just above its input box.
-                label_y = widget.rect.y - label_surf.get_height() - 5
-                screen.blit(label_surf, (widget.rect.x, label_y))
-
-        # If there's an info/error message, draw it near the bottom of the popup.
-        if popup_info_text:
-            info_surf = FONT.render(popup_info_text, True, pygame.Color('red'))
-            screen.blit(info_surf, (popup_rect.x + 20, popup_rect.bottom - 40))
-
-        # Draw all widgets (inputs, buttons) in the popup.
-        for widget in popup_widgets:
-            widget.draw(screen)
-
-    elif state == "game":
-        draw_game_screen()
-
-    # Update the display and maintain 30 FPS.
     pygame.display.flip()
     CLOCK.tick(30)
