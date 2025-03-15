@@ -4,7 +4,7 @@ import socket
 import sys
 
 # Import external modules for countdown and game screen.
-import gamestarttimer
+import gameStartTimer
 import gameScreen
 
 # ---------------------------------------------------------
@@ -754,7 +754,7 @@ def start_game_sequence():
     After the countdown completes, it sends the game start UDP code
     and then opens the game screen.
     """
-    gamestarttimer.run_countdown(screen)
+    gameStartTimer.run_countdown(screen)
     send_udp_message(DEFAULT_UDP_IP, 202)  # Transmit game start code
     gameScreen.show_game_screen(screen)
     # After returning from game screen, go back to player entry.
