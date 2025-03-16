@@ -1,6 +1,5 @@
 Notes from Brady:
-  Game screen is made, but right now it has no database connection or way to get into it from main. I have some code on my end
-  to do it but its a stop gap measure that will bug out the second the new player entry screen is made.
+  Game screen is made, but right now it is ugly and doesn't actually do anything outside of being a still image
 
 
 Notes from Matthew:
