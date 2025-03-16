@@ -47,7 +47,7 @@ The application displays a splash screen on startup, then transitions into an en
    `pip3 install psycopg2-binary`
 
 ## How to Run
-1. Download `main.py`, `database.py`, `udp_server.py`, and `logo.jpg` and in the terminal go to the directory you downloaded/installed the files to.
+1. Download zip file and extract it. On the terminal, go to the directory where you extracted the file to. 
 2. Start the server by entering `python3 udp_server.py`. This defaults to 0.0.0.0 to listen on all interfaces on port 7501.
 
    -Only testing functionality right now with udp_client or changing port in main.py since no player gameplay has been created yet.
