@@ -756,7 +756,7 @@ def start_game_sequence():
     """
     gameStartTimer.run_countdown(screen)
     send_udp_message(DEFAULT_UDP_IP, 202)  # Transmit game start code
-    gameScreen.show_game_screen(screen)
+    gameScreen.show_game_screen(screen, players_table["green"], players_table["red"])
     # After returning from game screen, go back to player entry.
     global state
     state = "main"

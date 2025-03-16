@@ -1,7 +1,7 @@
 import pygame
 import sys
 
-def show_game_screen(screen):
+def show_game_screen(screen, green_team, red_team):
     """
     Displays the play action screen using the provided screen.
     """
@@ -42,6 +42,16 @@ def show_game_screen(screen):
         # Draw timer at the bottom
         timer_text = font.render("Timer", True, WHITE)
         screen.blit(timer_text, (WIDTH // 2 - 40, HEIGHT - 40))
+
+        # Display players under their team
+        y_offset = 60
+        for i, player in enumerate(green_team):
+            player_text = font.render(f"{player['codename']}", True, WHITE)
+            screen.blit(player_text, (WIDTH // 6 - 40, y_offset + (i * 50)))
+
+        for i, player in enumerate(red_team):
+            player_text = font.render(f"{player['codename']}", True, WHITE)
+            screen.blit(player_text, (WIDTH * 5 // 6 - 40, y_offset + (i * 50)))
 
         # Event handling
         for event in pygame.event.get():
