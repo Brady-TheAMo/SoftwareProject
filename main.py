@@ -2,6 +2,7 @@ import pygame
 import psycopg2
 import socket
 import sys
+import random
 
 # Import external modules for countdown and game screen.
 import gameStartTimer
