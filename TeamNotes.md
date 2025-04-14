@@ -1,5 +1,5 @@
 Notes from Brady:
-  Game screen is made, but right now it is ugly and doesn't actually do anything outside of being a still image
+  Game screen can handle base hits and I used the code in 6minutetimer.py to make a working timer for the game as well. Only thing left is traffic generator, keeping players sorted by score, and an overall team score for both teams.
 
 
 Notes from Matthew:
