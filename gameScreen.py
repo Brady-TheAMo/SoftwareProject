@@ -198,6 +198,7 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
     
     try:
         pygame.mixer.music.load(track_path)
+        pygame.mixer.music.set_volume(1.0)  # 1.0 = 100%
         pygame.mixer.music.play()
         print(f"Now playing: {track_filename}", flush=True)
     except Exception as e:
