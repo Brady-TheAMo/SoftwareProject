@@ -25,6 +25,10 @@ DEFAULT_UDP_IP = "127.0.0.1"
 game_udp_address = DEFAULT_UDP_IP
 
 # Initialize Pygame and the font system.
+import pygame.mixer
+pygame.mixer.pre_init(44100, -16, 2, 2048)  # Optional but recommended settings
+pygame.mixer.init()
+
 pygame.init()
 pygame.font.init()
 
