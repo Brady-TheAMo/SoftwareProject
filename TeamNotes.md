@@ -3,6 +3,5 @@ Notes from Brady:
 
 
 Notes from Matthew:
-  Splash screen and player entry screen were combined into main.py for a more seamless UI, this way it does not open 2 different terminal after one another.
-  The main.py should make it easier later because I added different game states.
+  Traffic generator runs game correctly and UDP aspect works. Score and everything is updated. 
   
