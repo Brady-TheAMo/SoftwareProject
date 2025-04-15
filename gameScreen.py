@@ -140,8 +140,7 @@ def draw_timer(surface, timer_font, time_left, screen_width, screen_height):
 def draw_play_by_play(surface, events, rect):
     """
     Draws the play-by-play log within the provided rectangle.
-    New events appear at the bottom with extra spacing between lines,
-    and with a larger bottom margin to avoid colliding with the timer.
+    New events appear at the bottom 
     """
     pygame.draw.rect(surface, (20, 20, 20), rect)
     pygame.draw.rect(surface, (255, 255, 255), rect, 2)
@@ -175,10 +174,6 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
     For each hit event, the shooter's individual score is updated:
       - +10 points for tagging an opposing player.
       - -10 points for tagging a teammate.
-    
-    When the game timer expires, code 221 is sent, and the game enters a "Game Over"
-    state. In this state the play action screen remains displayed until F1 is pressed or the
-    "Return" button is clicked, which clears all player data and returns to the player entry screen.
     """
     WIDTH, HEIGHT = screen.get_width(), screen.get_height()
     pygame.display.set_caption("Team Interface")
@@ -199,28 +194,21 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
     center_section = pygame.Rect(WIDTH // 3, 0, WIDTH // 3, HEIGHT)
     right_section = pygame.Rect(WIDTH * 2 // 3, 0, WIDTH // 3, HEIGHT)
     
-    duration = 6 * 60
+    duration = 6 * 60  # 6-minute game
     start_time = time.time()
     clock = pygame.time.Clock()
     running = True
     
     game_over = False
-    # Define a "Return" button for game over.
-    return_button = pygame.Rect((WIDTH - 200) // 2, HEIGHT - 120, 200, 50)
     
     while running:
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            # While the game is running, allow ESC to quit.
             elif event.type == pygame.KEYDOWN:
-                # If game is over, allow F1 to reset.
-                if game_over and event.key == pygame.K_F1:
-                    running = False
-                elif event.key == pygame.K_ESCAPE:
-                    running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if game_over and return_button.collidepoint(event.pos):
+                if event.key == pygame.K_ESCAPE:
                     running = False
         
         # Process all incoming UDP messages.
@@ -254,8 +242,10 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
         time_left = max(0, duration - int(elapsed))
         
         screen.fill(BLACK)
-        draw_team_section(screen, left_section, GREEN, (0, 100, 0), green_team, font, WHITE, flash_score=(sum(p.get("points",0) for p in green_team) > sum(p.get("points",0) for p in red_team)))
-        draw_team_section(screen, right_section, RED, (150, 0, 0), red_team, font, WHITE, flash_score=(sum(p.get("points",0) for p in red_team) > sum(p.get("points",0) for p in green_team)))
+        draw_team_section(screen, left_section, GREEN, (0, 100, 0), green_team, font, WHITE,
+                          flash_score=(sum(p.get("points", 0) for p in green_team) > sum(p.get("points", 0) for p in red_team)))
+        draw_team_section(screen, right_section, RED, (150, 0, 0), red_team, font, WHITE,
+                          flash_score=(sum(p.get("points", 0) for p in red_team) > sum(p.get("points", 0) for p in green_team)))
         draw_play_by_play(screen, play_by_play_events, center_section)
         draw_timer(screen, timer_font, time_left, WIDTH, HEIGHT)
         
@@ -271,12 +261,12 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
                 if len(play_by_play_events) > 50:
                     play_by_play_events.pop(0)
         
-        # If game time has expired and we haven't entered game over state yet:
+        # When the timer expires and game over has not been set, send code 221 and enter game over state.
         if time_left <= 0 and not game_over:
             from main import send_udp_message
             send_udp_message(udp_address, 221)
-            game_over = True  # Enter game over state.
-            print("Game Over. Waiting for F1 or Return button press.", flush=True)
+            game_over = True
+            print("Game Over. Displaying overlay indefinitely.", flush=True)
         
         # If in game over state, draw an overlay.
         if game_over:
@@ -285,23 +275,15 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
             screen.blit(overlay, (0, 0))
             over_font = pygame.font.Font(None, 72)
             over_text = over_font.render("GAME OVER", True, (255, 0, 0))
-            screen.blit(over_text, over_text.get_rect(center=(WIDTH//2, HEIGHT//2 - 50)))
+            screen.blit(over_text, over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50)))
             info_font = pygame.font.Font(None, 36)
-            info_text = info_font.render("Press F1 or click Return", True, (255, 255, 255))
-            screen.blit(info_text, info_text.get_rect(center=(WIDTH//2, HEIGHT//2 + 10)))
-            # Draw the Return button.
-            pygame.draw.rect(screen, (0, 0, 255), return_button)
-            btn_font = pygame.font.Font(None, 36)
-            btn_text = btn_font.render("Return", True, (255, 255, 255))
-            screen.blit(btn_text, btn_text.get_rect(center=return_button.center))
+            info_text = info_font.render("Press ESC to exit", True, (255, 255, 255))
+            screen.blit(info_text, info_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 10)))
         
         pygame.display.flip()
         clock.tick(30)
     
-    # After the game over loop ends, clear player data before returning.
-    from main import clear_players
-    clear_players()
+    # Clean up when the window is closed.
     udp_socket.close()
-    print("Returning to player entry screen.", flush=True)
-    # Instead of calling sys.exit(), simply return control.
+    print("Exiting game screen.", flush=True)
     return
