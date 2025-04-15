@@ -3,7 +3,7 @@ import psycopg2
 import socket
 import sys
 import random
-import threading  # No longer used in our start_game_sequence, but kept if needed later.
+import threading
 
 # Import external modules for countdown and game screen.
 import gameStartTimer
@@ -554,14 +554,6 @@ def start_game_sequence():
     # Run the countdown first.
     gameStartTimer.run_countdown(screen)
     
-    # **NEW STEP:** Initialize UDP socket for the game.
-    # (You must add the following function in gameScreen.py:
-    #      def init_udp_socket():
-    #            udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #            udp_socket.bind(("127.0.0.1", 7501))
-    #            udp_socket.setblocking(False)
-    #            print("UDP socket initialized", flush=True)
-    #            return udp_socket)
     udp_sock = gameScreen.init_udp_socket()
     
     # Now send the start code so that the traffic generator can start transmitting.
