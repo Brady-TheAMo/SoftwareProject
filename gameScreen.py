@@ -3,6 +3,8 @@ import sys
 import random
 import time
 import socket
+import os
+import pygame.mixer
 
 def init_udp_socket():
     """
@@ -187,6 +189,20 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
     timer_font = pygame.font.Font(None, 60)
     
     print("Game screen started", flush=True)
+
+    # --- Audio Setup ---
+    pygame.mixer.init()
+    track_number = random.randint(1, 8)
+    track_filename = f"Track{track_number:02}.mp3"
+    track_path = os.path.join("photon_tracks", track_filename)
+    
+    try:
+        pygame.mixer.music.load(track_path)
+        pygame.mixer.music.play()
+        print(f"Now playing: {track_filename}", flush=True)
+    except Exception as e:
+        print(f"Error loading or playing audio: {e}", flush=True)
+
     
     play_by_play_events = []
     
@@ -267,6 +283,9 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
             send_udp_message(udp_address, 221)
             game_over = True
             print("Game Over. Displaying overlay indefinitely.", flush=True)
+
+        pygame.mixer.music.stop()
+
         
         # If in game over state, draw an overlay.
         if game_over:
