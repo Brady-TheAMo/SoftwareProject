@@ -48,7 +48,9 @@ The application displays a splash screen on startup, then transitions into an en
 
 ## How to Run
 1. Download zip file and extract it. On the terminal, go to the directory where you extracted the file to. 
-2. Start the traffic generator by entering `python3 trafficGenerator.py`. T
+2. Start the traffic generator by entering `python3 trafficGenerator.py`.
 
    -Follow the instructions on the terminal by entering the hardware ID for each player.
 3. In a separate terminal go to the same directory you downloaded/installed the files to and enter `python3 main.py` to start the application.
+4. Add Players to the game using the 'Add Player' button. For the traffic generator to function properly, add 2 players to the red team and 2 players to the green team.
+5. After Player entry is finished, press F5 or click Start game to begin. 
