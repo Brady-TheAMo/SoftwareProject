@@ -283,9 +283,10 @@ def show_game_screen(screen, green_team, red_team, udp_address, udp_socket):
             from main import send_udp_message
             send_udp_message(udp_address, 221)
             game_over = True
+            pygame.mixer.music.stop()
             print("Game Over. Displaying overlay indefinitely.", flush=True)
 
-        pygame.mixer.music.stop()
+       
 
         
         # If in game over state, draw an overlay.
